@@ -1,8 +1,10 @@
 langchain==0.2.0
 langchain-chroma==0.1.1
 langchain-community==0.2.0
+langchain-huggingface==0.0.3
 langchain-openai==0.1.7
 langchainhub==0.1.15
 pypdf==4.2.0
+sentence-transformers==3.0.1
 streamlit==1.27.2
 streamlit-antd-components==0.3.2

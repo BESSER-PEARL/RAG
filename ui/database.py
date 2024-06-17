@@ -1,6 +1,6 @@
 import streamlit as st
 
-from rag.rag import create_db, get_db
+from rag.rag import create_db, get_db, load_embeddings
 
 
 def database_config():
@@ -9,10 +9,11 @@ def database_config():
     db_path = st.text_input(label='Directory of the vector DB', value='./vector_db')
     chunk_size = st.number_input(label='Chunk size', min_value=1, value=1000)
     chunk_overlap = st.number_input(label='Chunk overlap', min_value=0, max_value=chunk_size, value=100)
+    embeddings = load_embeddings()
     if st.button('Create DB'):
         st.session_state['db_path'] = db_path
         with st.spinner('Creating database...'):
-            create_db(source_path, db_path, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-    db = get_db(db_path)
+            create_db(source_path, db_path, embeddings, chunk_size, chunk_overlap)
+    db = get_db(db_path, embeddings)
     if db:
         st.info(f'The database is created an located in {db_path}')

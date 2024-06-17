@@ -3,7 +3,7 @@ from langchain_core.documents import Document
 from langchain_core.messages import AIMessage
 
 from rag.message import Message
-from rag.rag import run_retrieval, run_llm
+from rag.rag import run_retrieval, run_llm, load_llm, load_embeddings
 
 user_type = {
     0: 'assistant',
@@ -24,17 +24,17 @@ def chat():
         user_message = Message(content=user_input, is_user=True)
         write_message(user_message)
 
-        with st.spinner('Generating'):
+        with st.spinner('Thinking...'):
             k = st.session_state['k']
-            llm_name = st.session_state['llm_name']
             db_path = st.session_state['db_path']
-
-            docs: list[Document] = run_retrieval(db_path, k, user_input)
+            provider = st.session_state['provider']
+            llm = load_llm(provider)
+            embeddings = load_embeddings()
+            docs: list[Document] = run_retrieval(db_path, embeddings, k, user_input)
             if docs is None:
                 st.error('There is no database')
             else:
-                llm_response: AIMessage = run_llm(user_input, llm_name, docs)
-
+                llm_response: AIMessage = run_llm(user_input, llm, docs)
                 llm_message = Message(content=llm_response.content, is_user=False, docs=docs)
                 st.session_state.history.append(user_message)
                 st.session_state.history.append(llm_message)
