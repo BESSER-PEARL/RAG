@@ -3,7 +3,7 @@ from langchain_core.documents import Document
 from langchain_core.messages import AIMessage
 
 from rag.message import Message
-from rag.rag import run_retrieval, run_llm, load_llm, load_embeddings
+from rag.rag import run_retrieval, load_llm, load_embeddings, create_prompt
 
 user_type = {
     0: 'assistant',
@@ -34,7 +34,8 @@ def chat():
             if docs is None:
                 st.error('There is no database')
             else:
-                llm_response: AIMessage = run_llm(user_input, llm, docs)
+                prompt = create_prompt(st.session_state['history'], docs, user_input, st.session_state['num_context'])
+                llm_response: AIMessage = llm.invoke(prompt)
                 llm_message = Message(content=llm_response.content, is_user=False, docs=docs)
                 st.session_state.history.append(user_message)
                 st.session_state.history.append(llm_message)

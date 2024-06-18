@@ -1,18 +1,20 @@
 import os
 
 import streamlit as st
-from langchain import hub
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage
+from langchain_core.prompt_values import PromptValue
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.vectorstores import VectorStoreRetriever
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_huggingface import HuggingFacePipeline, ChatHuggingFace, HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from huggingface_hub import login
+
+from rag.message import Message
 
 
 def load_embeddings() -> Embeddings:
@@ -85,13 +87,18 @@ def load_hf_llm(model_id: str, max_length=2000) -> ChatHuggingFace:
     return llm
 
 
-def run_llm(query: str, llm: BaseChatModel, docs: list[Document]) -> AIMessage:
-    def format_docs(docs):
-        return "\n\n".join(doc.page_content for doc in docs)
+def create_prompt(history: list[Message], docs: list[Document], question: str, num_context: int) -> PromptValue:
+    def format_docs(_docs):
+        return "\n\n".join(doc.page_content for doc in _docs)
 
-    prompt = hub.pull("rlm/rag-prompt")  # https://smith.langchain.com/hub/rlm/rag-prompt
-
-    formatted_prompt = prompt.format(context=format_docs(docs), question=query)
-    return llm.invoke(formatted_prompt)
-
-
+    conversation = [("human", "You are an assistant for question-answering tasks. You only talk Spanish, even if you receive an English query. Based on the previous messages in the conversation (if provided), and additional context retrieved from a database (if provided), answer the user question. If you don't know the answer, just say that you don't know. Note that if the question refers to a previous message, you may have to ignore the context since it is retrieved from the database based only on the question (the retrieval does not take into account the previous messages). Use three sentences maximum and keep the answer concise")]
+    conversation.extend(("human" if message.is_user else "ai", message.content) for message in history[-num_context:])
+    conversation.append(("human", "Context: {context}\nQuestion: {question}\nAnswer:"))
+    template = ChatPromptTemplate.from_messages(conversation)
+    prompt_value = template.invoke(
+        {
+            "context": format_docs(docs),
+            "question": question
+        }
+    )
+    return prompt_value
